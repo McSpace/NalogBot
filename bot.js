@@ -11,7 +11,7 @@ var request = require('request');
 var TelegramBot = require('node-telegram-bot-api');
 var readline = require('readline');
 
-var BadFn = "23";
+var BadFn = "22";
 
 
 
