@@ -10,9 +10,10 @@ For a description of the Bot API, see this page: https://core.telegram.org/bots/
 var request = require('request');
 var TelegramBot = require('node-telegram-bot-api');
 var readline = require('readline');
+var HashMap = require('hashmap');
 
 var BadFn = "22";
-
+var map = new HashMap();
 
 
 var rl = readline.createInterface({
@@ -36,7 +37,7 @@ bot.on('text', function (msg) {
   var chatId = msg.chat.id;
   lastChat = chatId;
   // photo can be: a file path, a stream or a Telegram file_id
-  if (msg.text.toLowerCase() == "test") {
+  if (msg.text.toLowerCase() === "test") {
     var photo = 'cat.jpg';
     bot.sendPhoto(chatId, photo, { caption: 'Чек корректный' });
   }
@@ -61,7 +62,7 @@ bot.on('photo', function (msg) {
     url1,
     function (error, response, FNbody) {
       if (error) { console.log(error); }
-      if (!error && response.statusCode == 200) {
+      if (!error && response.statusCode === 200) {
         console.log('=== get file path ===');
         console.log(FNbody);
 
@@ -69,16 +70,45 @@ bot.on('photo', function (msg) {
           'http://api.qrserver.com/v1/read-qr-code/?fileurl=https://api.telegram.org/file/bot' + token + '/' + JSON.parse(FNbody).result.file_path,
           function (error, response, body) {
             if (error) { console.log(error); }
-            if (!error && response.statusCode == 200) {
+            if (!error && response.statusCode === 200) {
               console.log('=== get QR ===');
               console.log(body);
               var r = JSON.parse(body)[0].symbol[0];
-              if (r.error == null) {
+              if (r.error === null) {
+              	var qrtext = r.data;
                 var fnpos = r.data.indexOf('fn=');
-                if (fnpos == -1) {
+                if (fnpos === -1) {
                   bot.sendMessage(chatId, "В QR-коде отсутсвует информация о чеке");
                 }
                 else {
+                	
+                	// Проверка на повтор
+                	if (map.has( qrtext )) {
+                		var exist = map.get(qrtext);
+                		console.log("Чек уже был отсканирован : " + exist);
+                		bot.sendMessage(chatId, "Чек уже был отсканирован : " + exist);
+                	}                                
+                	else{
+                	// Добавление в реестр
+                		console.log("START");
+                	  console.log(qrtext);
+                	  var amountstr = qrtext.match(new RegExp("&s=" + "(.*)" + "&fn="))[1];
+                	  console.log(amountstr);
+					  
+					  map.set(qrtext, "telegram bot пльзователь " + chatId);
+					  var amount = parseFloat(amountstr);
+					  console.log(amount);
+					  
+					  var cacheback = amount * 0.1;
+					  console.log(cacheback);
+					                  	
+					  bot.sendMessage(chatId, "Чек обработан. Вам начислено " + cacheback + "р. кэшбэк.");
+					  console.log("END");
+					
+					}
+					
+                	// 
+                  /*	
                   var fn = r.data.substr(fnpos + 3, 16);
 
                   console.log("FN = " + fn);
@@ -89,6 +119,8 @@ bot.on('photo', function (msg) {
                     bot.sendMessage(chatId, "Чек коррекный");
 
                   }
+                  
+                  */
                 }
 
               }
